@@ -1,0 +1,27 @@
+custom-command: "docker run -it mnt$(pwd) $1:$2"
+
+options:
+  - name: "golang"
+    display: "GoLang"
+    color: "light-blue"
+    type: "select"
+    tags:
+      - name: 'alpine',
+        display: 'Alpine latest',
+        color: blue, bold,
+
+      - name: '1.23-alpine'
+        display: "Alpine 1.23"
+        color: "blue"
+
+      - name: "custom"
+        display: "Custom"
+        color: "red"
+        custom-command: "docker run ..."
+
+      - name: "more custom"
+        type: "input"
+  - name: "java"
+    display: "Java"
+    color: "green"
+    custom-command: "docker run ..."
