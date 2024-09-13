@@ -5,10 +5,9 @@ import (
 	"atomicgo.dev/keyboard/keys"
 	"context"
 	"fmt"
-	"github.com/liuuner/temp-container/colors"
+	"github.com/liuuner/cmd-builder/colors"
 	"io"
 	"os"
-	"sync"
 )
 
 var col = colors.CreateColors(true)
@@ -22,24 +21,23 @@ type Item struct {
 type Selector struct {
 	writer     io.Writer
 	cursorPos  int
-	cursorChar rune
+	cursorChar string
 	items      []Item
 	cancelFunc context.CancelFunc
 	doneCh     chan struct{}
-	lock       sync.RWMutex
 	hasTitle   bool
 }
 
 type Config struct {
 	Writer     io.Writer
-	CursorChar rune
+	CursorChar string
 }
 
 func New(items []Item, cfg Config) *Selector {
 	s := &Selector{
 		writer:     os.Stderr,
 		cursorPos:  0,
-		cursorChar: '>',
+		cursorChar: ">",
 		items:      items,
 		hasTitle:   true,
 	}
@@ -48,14 +46,14 @@ func New(items []Item, cfg Config) *Selector {
 		s.writer = cfg.Writer
 	}
 
-	if cfg.CursorChar != 0 {
+	if cfg.CursorChar != nil {
 		s.cursorChar = cfg.CursorChar
 	}
 
 	return s
 }
 
-func (s *Selector) Open() Item {
+func (s *Selector) Open() (item Item, err error) {
 	/*defer func() {
 		// show the cursor
 		fmt.Printf("\033[?25h")
@@ -63,7 +61,6 @@ func (s *Selector) Open() Item {
 
 	// remove the cursor
 	fmt.Printf("\033[?25l")
-	s.lock.Lock()
 
 	if s.hasTitle {
 		fmt.Printf("%s Select a framework: %s\n",
@@ -80,10 +77,10 @@ func (s *Selector) Open() Item {
 	// Exit application on "q" key press.
 	// Print every rune key press.
 	// Print every other key press.
-	keyboard.Listen(func(key keys.Key) (stop bool, err error) {
+	err := keyboard.Listen(func(key keys.Key) (stop bool, err error) {
 		switch key.Code {
 		case keys.CtrlC, keys.Escape:
-			return true, nil // Return true to stop listener
+			return true, error("Aborted") // Return true to stop listener
 		case keys.Up:
 			s.cursorPos--
 			s.keepPosInBoudaries()
@@ -111,16 +108,23 @@ func (s *Selector) Open() Item {
 
 		// Return false to continue listening
 	})
-	fmt.Printf("\033[?25h")
+
 	s.clear()
+
+	if err != nil {
+		fmt.Printf("%s Select a framework: %s", col.Red("×"), col.Gray("› aborted"))
+	}
+
 	//fmt.Print("#")
 	selectedItem := s.items[s.cursorPos]
 
 	if s.hasTitle {
-		fmt.Printf("%s Select a framework: %s", col.Green("✔"), col.Gray("› "+selectedItem.Display))
+		fmt.Printf("%s Select a framework: %s %s", col.Green("✔"), col.Gray("›"), selectedItem.Color(selectedItem.Display))
 	}
 
-	return selectedItem
+	fmt.Printf("\033[?25h") // Show Cursor
+
+	return selectedItem nil
 }
 
 func (s *Selector) keepPosInBoudaries() {
@@ -147,7 +151,7 @@ func (s *Selector) render(rerender bool) {
 		}
 		cursor := "  "
 		if index == s.cursorPos { // for color or other effects
-			cursor = col.Cyan("> ")
+			cursor = col.Cyan(s.cursorChar + " ")
 			menuItemText = col.Bold(menuItemText)
 		}
 
@@ -169,18 +173,19 @@ func (s *Selector) clear() {
 }
 
 func (s *Selector) Close() {
-	if !s.isOpen() {
-		return
-	}
-	s.cancelFunc()
+	//if !s.isOpen() {
+	//	return
+	//}
+	//s.cancelFunc()
+	fmt.Printf("\033[?25h") // Show Cursor
+	//s.lock.Lock()
 
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	//s.lock.Unlock()
 }
 
-func (s *Selector) isOpen() bool {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
+//func (s *Selector) isOpen() bool {
+//s.lock.RLock()
+//defer s.lock.RUnlock()
 
-	return s.doneCh != nil
-}
+//return s.doneCh != nil
+//}
