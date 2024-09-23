@@ -1,27 +1,58 @@
-custom-command: "docker run -it mnt$(pwd) $1:$2"
+title: "Select a Thing"
+cmd: "docker run -it --rm -v $PWD:/app -w /app golang:alpine"
+#cmd: "docker run -t -v $PWD:/app -w /app -e GOOS=windows -e GOARCH=amd64 golang:alpine go build"
 
-options:
-  - name: "golang"
+#vars: # Variables for Array of Blocks which can be reused
+#  - tags:
+#      - value: 'alpine',
+#        display: 'Alpine latest',
+#        color: "blue"
+#
+#      - value: '1.23-alpine'
+#        display: "Alpine 1.23"
+#        color: "blue"
+
+
+blocks:
+  - value: "golang"
     display: "GoLang"
-    color: "light-blue"
-    type: "select"
-    tags:
-      - name: 'alpine',
-        display: 'Alpine latest',
-        color: blue, bold,
+    color: "BlueBright"
+    title: "Select a Version"
+    blocks:
+      - value: 'alpine'
+        display: 'Alpine latest'
+        color: "Yellow"
 
-      - name: '1.23-alpine'
+      - value: '1.23-alpine'
         display: "Alpine 1.23"
-        color: "blue"
+        color: "Blue"
 
-      - name: "custom"
-        display: "Custom"
-        color: "red"
-        custom-command: "docker run ..."
+  - value: "alpine"
+    display: "Linux"
+    color: "Green"
+    title: "Select a Version"
+    blocks:
+      - value: 'latest'
+        display: 'Alpine latest'
+        color: "BlueBright"
 
-      - name: "more custom"
-        type: "input"
-  - name: "java"
-    display: "Java"
-    color: "green"
-    custom-command: "docker run ..."
+      - value: '1.23-alpine'
+        display: "Alpine 1.23"
+        color: "Blue"
+
+  - value: "go-build"
+    display: "GO Build"
+    color: "Red"
+    cmd: "docker run -t --rm -v $PWD:/app -w /app -e GOARCH=amd64 -e GOOS=$2 golang:alpine go build"
+    title: "Select a OS"
+    blocks:
+      - value: "linux"
+        display: "Linux/amd64"
+        color: "Green"
+
+      - value: "windows"
+        display: "Windows/amd64"
+        color: "MagentaBright"
+
+
+

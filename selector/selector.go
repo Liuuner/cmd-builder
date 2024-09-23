@@ -3,9 +3,9 @@ package selector
 import (
 	"atomicgo.dev/keyboard"
 	"atomicgo.dev/keyboard/keys"
-	"context"
+	"errors"
 	"fmt"
-	"github.com/liuuner/cmd-builder/colors"
+	"github.com/liuuner/selto/colors"
 	"io"
 	"os"
 )
@@ -13,121 +13,97 @@ import (
 var col = colors.CreateColors(true)
 
 type Item struct {
-	Name    string
+	Id      string
 	Display string
 	Color   colors.Formatter
 }
 
 type Selector struct {
-	writer     io.Writer
-	cursorPos  int
-	cursorChar string
-	items      []Item
-	cancelFunc context.CancelFunc
-	doneCh     chan struct{}
-	hasTitle   bool
+	writer       io.Writer
+	cursorString string
+	hasPrompt    bool
+	hasSummary   bool
+	title        string
+	items        []Item
+	cursorPos    int
 }
 
-type Config struct {
-	Writer     io.Writer
-	CursorChar string
-}
+type Option func(*Selector)
 
-func New(items []Item, cfg Config) *Selector {
+func New(items []Item, title string, opts ...Option) *Selector {
 	s := &Selector{
-		writer:     os.Stderr,
-		cursorPos:  0,
-		cursorChar: ">",
-		items:      items,
-		hasTitle:   true,
+		writer:       os.Stdout,
+		title:        title,
+		items:        items,
+		cursorString: ">",
+		hasPrompt:    true,
+		hasSummary:   true,
+		cursorPos:    0,
 	}
 
-	if cfg.Writer != nil {
-		s.writer = cfg.Writer
-	}
-
-	if cfg.CursorChar != nil {
-		s.cursorChar = cfg.CursorChar
+	// Apply all provided options
+	for _, opt := range opts {
+		opt(s)
 	}
 
 	return s
 }
 
 func (s *Selector) Open() (item Item, err error) {
-	/*defer func() {
-		// show the cursor
-		fmt.Printf("\033[?25h")
-	}()*/
-
 	// remove the cursor
 	fmt.Printf("\033[?25l")
 
-	if s.hasTitle {
-		fmt.Printf("%s Select a framework: %s\n",
+	if s.hasPrompt {
+		fmt.Printf("%s %s: %s\n",
 			col.Cyan("?"),
+			s.title,
 			col.Gray("› - Use arrow-keys. Return to submit."),
 		)
 	}
 
 	s.render(false)
 
-	//ctx, cancel := context.WithCancel(context.Background())
-
-	// Stop keyboard listener on Escape key press or CTRL+C.
-	// Exit application on "q" key press.
-	// Print every rune key press.
-	// Print every other key press.
-	err := keyboard.Listen(func(key keys.Key) (stop bool, err error) {
+	err = keyboard.Listen(func(key keys.Key) (stop bool, err error) {
 		switch key.Code {
-		case keys.CtrlC, keys.Escape:
-			return true, error("Aborted") // Return true to stop listener
+		case keys.CtrlC, keys.Escape, keys.Backspace:
+			return true, errors.New("canceled") // Return true to stop listener
 		case keys.Up:
 			s.cursorPos--
-			s.keepPosInBoudaries()
+			s.keepPosInBoundaries()
 			s.render(true)
 		case keys.Down:
 			s.cursorPos++
-			s.keepPosInBoudaries()
+			s.keepPosInBoundaries()
 			s.render(true)
-
 		case keys.Enter:
 			return true, nil
 		}
 
 		return false, nil
-
-		/*case keys.RuneKey: // Check if key is a rune key (a, b, c, 1, 2, 3, ...)
-			if key.String() == "q" { // Check if key is "q"
-				fmt.Println("\rQuitting application")
-				os.Exit(0) // Exit application
-			}
-			fmt.Printf("\rYou pressed the rune key: %s\n", key)
-		default:
-			fmt.Printf("\rYou pressed: %s\n", key)
-		}*/
-
-		// Return false to continue listening
 	})
 
 	s.clear()
 
-	if err != nil {
-		fmt.Printf("%s Select a framework: %s", col.Red("×"), col.Gray("› aborted"))
+	if s.hasSummary && err != nil {
+		fmt.Printf("%s %s: %s\n", col.Red("×"), s.title, col.Gray("› ", err))
+		return Item{}, err
 	}
-
-	//fmt.Print("#")
 	selectedItem := s.items[s.cursorPos]
 
-	if s.hasTitle {
-		fmt.Printf("%s Select a framework: %s %s", col.Green("✔"), col.Gray("›"), selectedItem.Color(selectedItem.Display))
+	if s.hasSummary {
+		if selectedItem.Color != nil {
+			fmt.Printf("%s %s: %s %s\n", col.Green("✔"), s.title, col.Gray("›"), selectedItem.Color(selectedItem.Display))
+		} else {
+			fmt.Printf("%s %s: %s %s\n", col.Green("✔"), s.title, col.Gray("›"), selectedItem.Display)
+		}
 	}
 
 	fmt.Printf("\033[?25h") // Show Cursor
 
-	return selectedItem nil
+	return selectedItem, nil
 }
 
-func (s *Selector) keepPosInBoudaries() {
+func (s *Selector) keepPosInBoundaries() {
 	s.cursorPos = (s.cursorPos + len(s.items)) % len(s.items)
 }
 
@@ -149,9 +125,9 @@ func (s *Selector) render(rerender bool) {
 		if item.Color != nil {
 			menuItemText = item.Color(item.Display)
 		}
-		cursor := "  "
+		cursor := " "
 		if index == s.cursorPos { // for color or other effects
-			cursor = col.Cyan(s.cursorChar + " ")
+			cursor = col.Cyan(s.cursorString, "")
 			menuItemText = col.Bold(menuItemText)
 		}
 
@@ -166,26 +142,39 @@ func (s *Selector) clear() {
 		fmt.Print("\u001b[2K") // ANSI escape code to clear the line
 	}
 
-	if s.hasTitle {
+	if s.hasPrompt {
 		fmt.Print("\033[F")    // ANSI escape code to move cursor up
 		fmt.Print("\u001b[2K") // ANSI escape code to clear the line
 	}
 }
 
-func (s *Selector) Close() {
-	//if !s.isOpen() {
-	//	return
-	//}
-	//s.cancelFunc()
-	fmt.Printf("\033[?25h") // Show Cursor
-	//s.lock.Lock()
-
-	//s.lock.Unlock()
+// Options
+func WithWriter(writer io.Writer) Option {
+	return func(s *Selector) {
+		s.writer = writer
+	}
 }
 
-//func (s *Selector) isOpen() bool {
-//s.lock.RLock()
-//defer s.lock.RUnlock()
+func WithCursorString(cursorString string) Option {
+	return func(s *Selector) {
+		s.cursorString = cursorString
+	}
+}
 
-//return s.doneCh != nil
-//}
+func WithPrompt(b bool) Option {
+	return func(s *Selector) {
+		s.hasPrompt = b
+	}
+}
+
+func WithSummary(b bool) Option {
+	return func(s *Selector) {
+		s.hasSummary = b
+	}
+}
+
+func WithInitialCursorPos(i int) Option {
+	return func(s *Selector) {
+		s.cursorPos = i
+	}
+}
