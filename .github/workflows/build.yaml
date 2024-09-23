@@ -30,17 +30,3 @@ jobs:
       - name: Test
         id: test
         run: go test -v
-
-      - uses: actions/attest-build-provenance@v1
-        with:
-          subject-path: |
-            selto
-            selto.exe
-
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: builds
-          path: |
-            selto
-            selto.exe
