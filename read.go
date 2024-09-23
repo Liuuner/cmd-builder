@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/google/uuid"
 	"github.com/liuuner/selto/colors"
 	"github.com/liuuner/selto/selector"
 	"gopkg.in/yaml.v2"
@@ -66,7 +67,7 @@ func mapToBlock(yamlBlock YamlBlock) Block {
 
 func mapToItem(yamlItem YamlItem) selector.Item {
 	if yamlItem.Value == "" {
-		return selector.Item{}
+		yamlItem.Value = uuid.NewString()
 	}
 
 	item := selector.Item{

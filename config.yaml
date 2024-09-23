@@ -1,7 +1,7 @@
-title: "Select a Thing"
-cmd: "docker run -it --rm -v $PWD:/app -w /app golang:alpine"
-#cmd: "docker run -t -v $PWD:/app -w /app -e GOOS=windows -e GOARCH=amd64 golang:alpine go build"
+title: "Select an Option"
+#cmd: "docker run -it --rm -v $PWD:/app -w /app $1:$2"
 
+# TODO make it possible
 #vars: # Variables for Array of Blocks which can be reused
 #  - tags:
 #      - value: 'alpine',
@@ -12,39 +12,47 @@ cmd: "docker run -it --rm -v $PWD:/app -w /app golang:alpine"
 #        display: "Alpine 1.23"
 #        color: "blue"
 
+# TODO make the sorting work again (map is random)
 
 blocks:
-  - value: "golang"
-    display: "GoLang"
-    color: "BlueBright"
-    title: "Select a Version"
+  - display: "Temp Container"
+    color: "Blue"
+    cmd: "docker run -it --rm -v $PWD:/app -w /app $2:$3"
+    title: "Select an Image"
     blocks:
-      - value: 'alpine'
-        display: 'Alpine latest'
-        color: "Yellow"
-
-      - value: '1.23-alpine'
-        display: "Alpine 1.23"
-        color: "Blue"
-
-  - value: "alpine"
-    display: "Linux"
-    color: "Green"
-    title: "Select a Version"
-    blocks:
-      - value: 'latest'
-        display: 'Alpine latest'
+      - value: "golang"
+        display: "GoLang"
         color: "BlueBright"
+        title: "Select a Version"
+        blocks:
+          - value: 'alpine'
+            display: 'Alpine latest'
+            color: "Yellow"
 
-      - value: '1.23-alpine'
-        display: "Alpine 1.23"
-        color: "Blue"
+          - value: '1.23-alpine'
+            display: "Alpine 1.23"
+            color: "Blue"
+
+
+      - value: "alpine"
+        display: "Linux"
+        color: "Green"
+        title: "Select a Version"
+        blocks:
+          - value: 'latest'
+            display: 'Alpine latest'
+            color: "BlueBright"
+
+          - value: '1.23-alpine'
+            display: "Alpine 1.23"
+            color: "Blue"
+
 
   - value: "go-build"
     display: "GO Build"
     color: "Red"
     cmd: "docker run -t --rm -v $PWD:/app -w /app -e GOARCH=amd64 -e GOOS=$2 golang:alpine go build"
-    title: "Select a OS"
+    title: "Select a Target-OS"
     blocks:
       - value: "linux"
         display: "Linux/amd64"
@@ -55,4 +63,15 @@ blocks:
         color: "MagentaBright"
 
 
+  - value: "others"
+    display: "Others"
+    title: "Select an Option"
+    blocks:
+      - display: "Some"
+        color: "Green"
 
+      - display: "More"
+        color: "MagentaBright"
+
+      - display: "Options"
+        color: "Cyan"
