@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/google/uuid"
 	"github.com/liuuner/selto/colors"
 	"github.com/liuuner/selto/selector"
 	"gopkg.in/yaml.v2"
@@ -8,7 +9,7 @@ import (
 )
 
 type YamlItem struct {
-	Value   string `yaml:"value"`
+	Id      string `yaml:"id"`
 	Display string `yaml:"display"`
 	Color   string `yaml:"color"`
 }
@@ -16,6 +17,7 @@ type YamlItem struct {
 // Block represents a container that can hold items and nested blocks
 type YamlBlock struct {
 	YamlItem `yaml:",inline"` // Embedding the Item struct
+	Value    string           `yaml:"value"`
 	Title    string           `yaml:"title"`
 	Blocks   []YamlBlock      `yaml:"blocks"`
 	Cmd      string           `yaml:"cmd"`
@@ -35,7 +37,7 @@ func ReadConfig(filename string) (Block, error) {
 		return Block{}, err
 	}
 
-	//fmt.Printf("Config: %+v\n", yamlConfig)
+	//fmt.Printf("YamlConfig: %+v\n", yamlConfig)
 
 	config := mapToBlock(yamlConfig)
 
@@ -47,6 +49,7 @@ func mapToBlock(yamlBlock YamlBlock) Block {
 
 	block.Title = yamlBlock.Title
 	block.Cmd = yamlBlock.Cmd
+	block.Value = yamlBlock.Value
 
 	blocks := make(map[string]Block)
 
@@ -65,12 +68,12 @@ func mapToBlock(yamlBlock YamlBlock) Block {
 }
 
 func mapToItem(yamlItem YamlItem) selector.Item {
-	if yamlItem.Value == "" {
-		return selector.Item{}
+	if yamlItem.Id == "" {
+		yamlItem.Id = uuid.NewString()
 	}
 
 	item := selector.Item{
-		Id:      yamlItem.Value,
+		Id:      yamlItem.Id,
 		Display: yamlItem.Display,
 		Color:   getColorFromValues(yamlItem.Color),
 	}

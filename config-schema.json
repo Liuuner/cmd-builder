@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "display": {
+      "type": "string"
+    },
+    "color": {
+      "type": "string",
+      "enum": [
+        "Reset", "Bold", "Dim", "Italic", "Underline", "Inverse", "Hidden", "Strikethrough",
+        "Black", "Red", "Green", "Yellow", "Blue", "Magenta", "Cyan", "White", "Gray",
+        "BgBlack", "BgRed", "BgGreen", "BgYellow", "BgBlue", "BgMagenta", "BgCyan", "BgWhite",
+        "BlackBright", "RedBright", "GreenBright", "YellowBright", "BlueBright", "MagentaBright",
+        "CyanBright", "WhiteBright", "BgBlackBright", "BgRedBright", "BgGreenBright",
+        "BgYellowBright", "BgBlueBright", "BgMagentaBright", "BgCyanBright", "BgWhiteBright"
+      ]
+    },
+    "value": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "blocks": {
+      "type": "array",
+      "items": { "$ref": "#" }
+    },
+    "cmd": {
+      "type": "string"
+    }
+  }
+}

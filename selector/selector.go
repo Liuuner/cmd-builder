@@ -19,26 +19,32 @@ type Item struct {
 }
 
 type Selector struct {
-	writer       io.Writer
-	cursorString string
-	hasPrompt    bool
-	hasSummary   bool
-	title        string
-	items        []Item
-	cursorPos    int
+	writer          io.Writer
+	cursorString    string
+	promptString    string
+	completedString string
+	failedString    string
+	hasPrompt       bool
+	hasSummary      bool
+	title           string
+	items           []Item
+	cursorPos       int
 }
 
 type Option func(*Selector)
 
 func New(items []Item, title string, opts ...Option) *Selector {
 	s := &Selector{
-		writer:       os.Stdout,
-		title:        title,
-		items:        items,
-		cursorString: ">",
-		hasPrompt:    true,
-		hasSummary:   true,
-		cursorPos:    0,
+		writer:          os.Stdout,
+		title:           title,
+		items:           items,
+		cursorString:    "❯",
+		promptString:    "?",
+		completedString: "✔",
+		failedString:    "✖",
+		hasPrompt:       true,
+		hasSummary:      true,
+		cursorPos:       0,
 	}
 
 	// Apply all provided options
@@ -50,12 +56,11 @@ func New(items []Item, title string, opts ...Option) *Selector {
 }
 
 func (s *Selector) Open() (item Item, err error) {
-	// remove the cursor
-	fmt.Printf("\033[?25l")
+	cursorHide()
 
 	if s.hasPrompt {
 		fmt.Printf("%s %s: %s\n",
-			col.Cyan("?"),
+			col.Cyan(s.promptString),
 			s.title,
 			col.Gray("› - Use arrow-keys. Return to submit."),
 		)
@@ -85,20 +90,20 @@ func (s *Selector) Open() (item Item, err error) {
 	s.clear()
 
 	if s.hasSummary && err != nil {
-		fmt.Printf("%s %s: %s\n", col.Red("×"), s.title, col.Gray("› ", err))
+		fmt.Printf("%s %s: %s\n", col.Red(s.failedString), s.title, col.Gray("› ", err))
 		return Item{}, err
 	}
 	selectedItem := s.items[s.cursorPos]
 
 	if s.hasSummary {
 		if selectedItem.Color != nil {
-			fmt.Printf("%s %s: %s %s\n", col.Green("✔"), s.title, col.Gray("›"), selectedItem.Color(selectedItem.Display))
+			fmt.Printf("%s %s: %s %s\n", col.Green(s.completedString), s.title, col.Gray("›"), selectedItem.Color(selectedItem.Display))
 		} else {
-			fmt.Printf("%s %s: %s %s\n", col.Green("✔"), s.title, col.Gray("›"), selectedItem.Display)
+			fmt.Printf("%s %s: %s %s\n", col.Green(s.completedString), s.title, col.Gray("›"), selectedItem.Display)
 		}
 	}
 
-	fmt.Printf("\033[?25h") // Show Cursor
+	cursorShow()
 
 	return selectedItem, nil
 }
@@ -125,10 +130,10 @@ func (s *Selector) render(rerender bool) {
 		if item.Color != nil {
 			menuItemText = item.Color(item.Display)
 		}
-		cursor := " "
+		cursor := "   "
 		if index == s.cursorPos { // for color or other effects
-			cursor = col.Cyan(s.cursorString, "")
-			menuItemText = col.Bold(menuItemText)
+			cursor = col.Cyan(s.cursorString, "  ")
+			menuItemText = col.Underline(menuItemText)
 		}
 
 		s.writer.Write([]byte(fmt.Sprintf("\r%s %s%s", cursor, menuItemText, newline)))
@@ -136,16 +141,32 @@ func (s *Selector) render(rerender bool) {
 }
 
 func (s *Selector) clear() {
-	fmt.Print("\u001b[2K") // ANSI escape code to clear the line
+	clearLine()
 	for i := 0; i < len(s.items)-1; i++ {
-		fmt.Print("\033[F")    // ANSI escape code to move cursor up
-		fmt.Print("\u001b[2K") // ANSI escape code to clear the line
+		cursorUp()
+		clearLine()
 	}
 
 	if s.hasPrompt {
-		fmt.Print("\033[F")    // ANSI escape code to move cursor up
-		fmt.Print("\u001b[2K") // ANSI escape code to clear the line
+		cursorUp()
+		clearLine()
 	}
+}
+
+func cursorUp() {
+	fmt.Print("\033[F") // ANSI escape code to move cursor up
+}
+
+func clearLine() {
+	fmt.Print("\u001b[2K") // ANSI escape code to clear the line
+}
+
+func cursorShow() {
+	fmt.Printf("\033[?25h") // Show Cursor
+}
+
+func cursorHide() {
+	fmt.Printf("\033[?25l") // Hide Cursor
 }
 
 // Options

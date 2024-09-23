@@ -15,6 +15,7 @@ var col = colors.CreateColors(true)
 // Block represents a container that can hold items and nested blocks
 type Block struct {
 	Item   selector.Item // Embedding the Item struct
+	Value  string        // TODO einbauen damit das als value zurückgegeben wird und Item.Id = UUID
 	Title  string
 	Blocks map[string]Block
 	Cmd    string
@@ -25,14 +26,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}
-	//
+
 	//config := getDockerConfig()
 	//fmt.Printf("Config: %+v\n", config)
 
 	results := request(config)
 
 	commandString := buildCommand(config.Cmd, results)
-	fmt.Println(commandString)
+	//fmt.Println(commandString)
 	cmd := exec.Command("sh", "-c", commandString)
 
 	// Connect the Go program's input/output with the docker process
@@ -40,10 +41,12 @@ func main() {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
+	fmt.Println() // a little space
+	//fmt.Printf("Starting Docker container\n")
 	// Run the command
-	fmt.Printf("Starting Docker container\n")
 	if err := cmd.Run(); err != nil {
-		fmt.Printf("Error running docker command: %v\n", err)
+		fmt.Print("\033[F") // ANSI escape code to move cursor up
+		fmt.Printf("Error running command '%s': %v\n", commandString, err)
 		os.Exit(1)
 	}
 }
@@ -114,7 +117,7 @@ func buildCommand(command string, results []Block) string {
 		if result.Cmd != "" {
 			command = result.Cmd
 		}
-		command = strings.ReplaceAll(command, placeholder, result.Item.Id)
+		command = strings.ReplaceAll(command, placeholder, result.Value)
 	}
 
 	return command
@@ -134,22 +137,27 @@ func request(container Block) []Block {
 	var results []Block
 
 	items := getItems(container.Blocks)
-	sel := selector.New(items, "Select an Image")
+	sel := selector.New(items, container.Title)
 	result, err := sel.Open()
 
 	if err != nil {
+		if err.Error() == "canceled" {
+			os.Exit(0)
+		}
+
 		fmt.Printf("Error building docker command: %v\n", err)
 		os.Exit(1)
 	}
-	if result.Id == "" {
+	/*if result.Id == "" {
 		fmt.Printf("Error in config\n")
 		os.Exit(1)
-	}
+	}*/
 	resultBlock, _ := container.Blocks[result.Id]
 	results = append(results, resultBlock)
 	if resultBlock.Blocks != nil {
 		results = append(results, request(resultBlock)...)
 	}
 
+	//fmt.Printf("Results: %+v\n", results)
 	return results
 }
