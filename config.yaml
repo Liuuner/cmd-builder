@@ -15,6 +15,7 @@ title: "Select an Option"
 # TODO make the sorting work again (map is random)
 
 blocks:
+    # Create a temporary container with the current directory mounted
   - display: "Temp Container"
     color: "Blue"
     cmd: "docker run -it --rm -v $PWD:/app -w /app $2:$3"
@@ -40,14 +41,14 @@ blocks:
         title: "Select a Version"
         blocks:
           - value: 'latest'
-            display: 'Alpine latest'
+            display: 'Alpine Latest'
             color: "BlueBright"
 
-          - value: '1.23-alpine'
-            display: "Alpine 1.23"
+          - value: '3.19'
+            display: "Alpine 3.19"
             color: "Blue"
 
-
+    # Build go-application for linux/windows inside a container
   - value: "go-build"
     display: "GO Build"
     color: "Red"
