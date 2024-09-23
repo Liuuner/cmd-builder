@@ -26,9 +26,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}
-	//
+
 	//config := getDockerConfig()
-	fmt.Printf("Config: %+v\n", config)
+	//fmt.Printf("Config: %+v\n", config)
 
 	results := request(config)
 
@@ -117,7 +117,7 @@ func buildCommand(command string, results []Block) string {
 		if result.Cmd != "" {
 			command = result.Cmd
 		}
-		command = strings.ReplaceAll(command, placeholder, result.Item.Id)
+		command = strings.ReplaceAll(command, placeholder, result.Value)
 	}
 
 	return command
@@ -158,5 +158,6 @@ func request(container Block) []Block {
 		results = append(results, request(resultBlock)...)
 	}
 
+	//fmt.Printf("Results: %+v\n", results)
 	return results
 }
