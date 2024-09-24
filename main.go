@@ -23,7 +23,20 @@ type Block struct {
 	Cmd    string
 }
 
+var Version = "Development"
+
 func main() {
+	// Define the version flag
+	versionFlag := flag.Bool("version", false, "Print the version and exit")
+
+	// Parse the flags
+	flag.Parse()
+
+	if *versionFlag {
+		fmt.Println("SelTo version:", Version)
+		os.Exit(0)
+	}
+
 	configPath, exists := getConfigFilePath()
 
 	if !exists {
