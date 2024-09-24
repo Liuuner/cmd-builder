@@ -1,12 +1,14 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/liuuner/selto/colors"
 	"github.com/liuuner/selto/selector"
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -15,20 +17,24 @@ var col = colors.CreateColors(true)
 // Block represents a container that can hold items and nested blocks
 type Block struct {
 	Item   selector.Item // Embedding the Item struct
-	Value  string        // TODO einbauen damit das als value zurückgegeben wird und Item.Id = UUID
+	Value  string
 	Title  string
 	Blocks map[string]Block
 	Cmd    string
 }
 
 func main() {
-	config, err := ReadConfig("config.yaml")
+	configPath, exists := getConfigFilePath()
+
+	if !exists {
+		fmt.Printf("Config file not found: %s", configPath)
+		os.Exit(1)
+	}
+
+	config, err := ReadConfig(configPath)
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}
-
-	//config := getDockerConfig()
-	//fmt.Printf("Config: %+v\n", config)
 
 	results := request(config)
 
@@ -42,13 +48,58 @@ func main() {
 	cmd.Stderr = os.Stderr
 
 	fmt.Println() // a little space
-	//fmt.Printf("Starting Docker container\n")
 	// Run the command
 	if err := cmd.Run(); err != nil {
 		fmt.Print("\033[F") // ANSI escape code to move cursor up
 		fmt.Printf("Error running command '%s': %v\n", commandString, err)
 		os.Exit(1)
 	}
+}
+
+func getConfigFilePath() (path string, exists bool) {
+	// Define flags
+	configPathFlag := flag.String("config", "", "Full path to the configuration file")
+	profileFlag := flag.String("profile", "", "Profile name to use for the configuration file")
+
+	flag.Parse()
+
+	var configPath string
+
+	if *configPathFlag != "" {
+		configPath = *configPathFlag
+	} else {
+		// UserConfigDir (~/.config)
+		configDir, err := os.UserConfigDir()
+		if err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+		seltoConfigDir := filepath.Join(configDir, "selto")
+
+		// Ensure the directory exists
+		if err := os.MkdirAll(seltoConfigDir, os.ModePerm); err != nil {
+			fmt.Println("Error creating config directory:", err)
+			return
+		}
+
+		// Determine the config file name based on the profile flag or default to config.yaml
+		configFileName := "config.yaml"
+		if *profileFlag != "" {
+			configFileName = *profileFlag + ".yaml"
+		}
+
+		configPath = filepath.Join(seltoConfigDir, configFileName)
+	}
+
+	return configPath, fileExists(configPath)
+}
+
+func fileExists(filePath string) bool {
+	_, err := os.Stat(filePath)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return err == nil
 }
 
 func getDockerConfig() Block {
