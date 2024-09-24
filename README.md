@@ -113,7 +113,10 @@ In the example YAML file above, the `$2` and `$3` placeholders correspond to the
 
 1. **Write Your Configuration**:
    Edit or create a `config.yaml` file in the UserConfigDir. On Linux it is `~/.config/selto/` and on Windows
-   `C:\Users\<Username>\AppData\Roaming\selto\`. You can use the provided JSON schema to validate your configuration.
+   `C:\Users\<Username>\AppData\Roaming\selto\`.
+   If you want to find out more about the Root Config Path see [UserConfigDir](https://pkg.go.dev/os#UserConfigDir).
+
+   You can use the provided JSON schema to validate your configuration.
 
 2. **Run SelTo**:
    To start the interactive selection CLI, simply run:
